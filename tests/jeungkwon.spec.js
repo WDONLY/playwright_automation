@@ -25,25 +25,34 @@ test('네이버 증권으로 가기', async ({ page }) => {
     try {
     console.log('새로운탭 url:', newPage.url());
     await expect(newPage).toHaveTitle(/삼성전자 : 네이버페이 증권/);
-
     await newPage.locator('.tab2').click({ force: true });
-    await newPage.waitForSelector('table.type2', { state: 'visible', timeout: 10000 });
 
-    const prices = await newPage.evaluate(() => {
-        const rows = document.querySelectorAll('table.type2 tbody tr');
-        return Array.from(rows).map(row => {
-            const cells = row.querySelectorAll('td');
-            if (cells.length >= 7) {
-                const date = cells[0].textContent.trim();
-                const closePrice = cells[1].textContent.trim();
-                // 날짜 형식 검증 (YYYY.MM.DD)
-                if (/^\d{4}\.\d{2}\.\d{2}$/.test(date)) {
-                    return { date, closePrice };
-                }
+    await newPage.waitForSelector('#content > div.section.inner_sub > iframe:nth-child(4)', { state: 'attached' });
+
+    // iframe 내용 가져오기
+    const frameHandle = await newPage.$('#content > div.section.inner_sub > iframe:nth-child(4)');
+    const frame = await frameHandle.contentFrame();
+
+
+    // await frame.waitForSelector('table.type2', { state: 'visible' });
+
+    // 테이블 데이터 추출
+    const rows = await frame.$$('body > table.type2 tbody tr');
+    
+    const prices = [];
+    for (const row of rows) {
+        const cells = await row.$$('td');
+        if (cells.length >= 7) {
+            const cleanedText = text => text.replace(/\s+/g, ' ').trim();
+
+            const date = await cells[0].textContent();
+            const closePrice = await cells[1].textContent();
+            const compareToYesterday = cleanedText(await cells[2].textContent());
+            if (/^\d{4}\.\d{2}\.\d{2}$/.test(date.trim())) {
+                prices.push({ date: date.trim(), closePrice: closePrice.trim(), compareToYesterday: compareToYesterday.trim()  });
             }
-            return null;
-        }).filter(item => item !== null);
-    });
+        }
+    }
 
     console.log('일별 시세:', prices);
     console.log('추출된 행 수:', prices.length);
@@ -55,4 +64,3 @@ test('네이버 증권으로 가기', async ({ page }) => {
 // 디버깅을 위해 잠시 대기
 await newPage.waitForTimeout(5000);
 });
-
