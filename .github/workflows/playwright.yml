@@ -30,9 +30,12 @@ jobs:
         
       - name: Run Playwright tests
         id: playwright
-        run: |
-          pnpm playwright test ./tests/naver > test_results.txt
-          echo "SUMMARY=$(tail -n 10 test_results.txt)" >> $GITHUB_OUTPUT
+        run: pnpm playwright test ./tests/naver > test_results.txt
+          
+      - name: Set summary output
+        id: set_output
+        run: echo "SUMMARY=$(tail -n 10 test_results.txt)" >> $GITHUB_ENV
+
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
