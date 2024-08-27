@@ -33,9 +33,11 @@ jobs:
         run: pnpm playwright test ./tests/naver > test_results.txt
           
       - name: Set summary output
-        id: set_output
+        id: set_summary
         run: echo "SUMMARY=$(tail -n 10 test_results.txt)" >> $GITHUB_ENV
 
+      - name: Print summary
+        run: echo "The test summary is ${{ env.SUMMARY }}"
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
