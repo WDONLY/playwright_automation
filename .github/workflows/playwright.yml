@@ -32,24 +32,23 @@ jobs:
         id: playwright
         run: |
           pnpm playwright test ./tests/naver > test_results.txt
-          echo "::set-output name=test_output::$(cat test_results.txt)"
-      
-      - uses: actions/upload-artifact@v4
-        if: always()
+          echo "SUMMARY=$(tail -n 10 test_results.txt)" >> $GITHUB_OUTPUT
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 30
-      
+          name: test-results
+          path: test_results.txt
 
       - name: Send Slack Notification
         if: always()
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           GITHUB_WORKFLOW: ${{ github.workflow }}
-          TEST_RESULTS: ${{ steps.playwright.outputs.test_output }}
+          TEST_SUMMARY: ${{ steps.playwright.outputs.SUMMARY }}
         run: |
           result_emoji=$([ "${{ job.status }}" == "success" ] && echo ":white_check_mark:" || echo ":x:")
+          artifact_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           curl -X POST -H 'Content-type: application/json' \
-          --data "{\"text\":\"${result_emoji} Playwright Test for *${GITHUB_WORKFLOW}* completed with status: ${{ job.status }}\n\nTest Results:\n${TEST_RESULTS}\"}" \
+          --data "{\"text\":\"${result_emoji} Playwright Test for *${GITHUB_WORKFLOW}* completed with status: ${{ job.status }}\n\nTest Summary:\n${TEST_SUMMARY}\n\nFull results: ${artifact_url}\"}" \
           $SLACK_WEBHOOK
