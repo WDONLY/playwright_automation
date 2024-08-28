@@ -30,10 +30,10 @@ jobs:
         
       - name: Run Playwright tests
         id: playwright
-        run: pnpm playwright test ./tests/naver > test_results.txt
+        run: pnpm playwright test ./tests/naver > test_results.html
           
       - name: Set summary environment variable
-        run: echo "SUMMARY=$(tail -n 10 test_results.txt)" >> $GITHUB_ENV
+        run: echo "SUMMARY=$(tail -n 10 test_results.html)" >> $GITHUB_ENV
 
       - name: Print summary
         run: echo "The test summary is ${{ steps.set_summary.outputs.SUMMARY }}"
@@ -42,7 +42,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: test_results.txt
+          path: test_results.html
 
       - name: Send Slack Notification
         if: always()
