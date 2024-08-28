@@ -57,18 +57,22 @@ jobs:
           artifact_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           summary="${{ env.TEST_SUMMARY }}"
           
+          # Remove ANSI escape codes and format the summary
+          formatted_summary=$(echo "$summary" | sed -E 's/\x1B\[[0-9;]*[mK]//g' | sed 's/^\s*//g' | sed '/^$/d' | sed 's/^/• /')
           
-          summary=$(echo "$summary" | sed -E 's/\\u001b\[[0-9;]*m//g')
-        
-          summary=$(echo "$summary" | sed 's/상승/📈 상승/g' | sed 's/하락/📉 하락/g' | sed 's/동일/➡️ 동일/g')
-
-          summary=$(echo "$summary" | jq -R -s '.')
-
-          payload=$(jq -n --arg emoji "$result_emoji" --arg workflow "$GITHUB_WORKFLOW" --arg status "${{ job.status }}" --arg summary "$summary" --arg url "$artifact_url" \
-            '{"text": "\($emoji) Playwright Test for *\($workflow)* completed with status: \($status)\n\nTest Summary:\n```\n\($summary)\n```\n\nFull report available at: \($url)"}')
-
-          curl -X POST -H 'Content-type: application/json' --data "$payload" $SLACK_WEBHOOK
-
+          # Replace text with emojis
+          formatted_summary=$(echo "$formatted_summary" | sed 's/상승/📈 상승/g' | sed 's/하락/📉 하락/g' | sed 's/동일/➡️ 동일/g')
+          
+          # Prepare the JSON payload
+          payload=$(jq -n \
+            --arg emoji "$result_emoji" \
+            --arg workflow "$GITHUB_WORKFLOW" \
+            --arg status "${{ job.status }}" \
+            --arg summary "$formatted_summary" \
+            --arg url "$artifact_url" \
+            '{
+              "text": "\($emoji) Playwright Test for *\($workflow)* completed with status: \($status)\n\nTest Summary:\n```\n\($summary)\n```\n\nFull report available at: \($url)"
+            }')
           
           # Send the notification and capture the output
           output=$(curl -X POST -H 'Content-type: application/json' --data "$payload" $SLACK_WEBHOOK -w "\n%{http_code}")
