@@ -18,13 +18,13 @@ jobs:
       - name: Set up pnpm
         uses: ./.github/actions/pnpm-setup-node
 
-       - name: Cache Playwright Browsers
-         uses: actions/cache@v4
-         with:
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v4
+        with:
           path: ~/.cache/ms-playwright
-           key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-playwright-  
+            ${{ runner.os }}-playwright-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
