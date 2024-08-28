@@ -60,6 +60,35 @@ jobs:
           # Escape special characters for JSON
           summary=$(echo "$summary" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
           
-          curl -X POST -H 'Content-type: application/json' \
-          --data "{\"text\":\"${result_emoji} Playwright Test for *${GITHUB_WORKFLOW}* completed with status: ${{ job.status }}\n\nTest Summary:\n\`\`\`\n${summary}\n\`\`\`\n\nFull report available at: ${artifact_url}\"}" \
-          $SLACK_WEBHOOK
+          # Prepare the JSON payload
+          payload=$(cat <<EOF
+          {
+            "text": "${result_emoji} Playwright Test for *${GITHUB_WORKFLOW}* completed with status: ${{ job.status }}\n\nTest Summary:\n\`\`\`\n${summary}\n\`\`\`\n\nFull report available at: ${artifact_url}"
+          }
+          EOF
+          )
+          
+          # Send the notification and capture the output
+          output=$(curl -X POST -H 'Content-type: application/json' --data "$payload" $SLACK_WEBHOOK -w "\n%{http_code}")
+          http_code=$(echo "$output" | tail -n1)
+          response_body=$(echo "$output" | sed '$d')
+          
+          # Print debug information
+          echo "HTTP Status Code: $http_code"
+          echo "Response Body: $response_body"
+          
+          # Check if the request was successful
+          if [ "$http_code" != "200" ]; then
+            echo "Failed to send Slack notification. HTTP Status Code: $http_code"
+            echo "Response Body: $response_body"
+            exit 1
+          fi
+
+      - name: Check Slack Webhook secret
+        if: failure()
+        run: |
+          if [ -z "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+            echo "SLACK_WEBHOOK_URL is not set or empty"
+          else
+            echo "SLACK_WEBHOOK_URL is set (value not shown for security reasons)"
+          fi
