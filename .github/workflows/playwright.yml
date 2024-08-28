@@ -1,7 +1,6 @@
 name: Playwright Tests
 
 on:
-
   schedule:
     - cron: '30 22 * * *'
   push:
@@ -19,40 +18,35 @@ jobs:
       - name: Set up pnpm
         uses: ./.github/actions/pnpm-setup-node
 
-      - name: Install package
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Install package
-        run: pnpm install cross-env
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
         
       - name: Run Playwright tests
-        id: playwright
-        run: pnpm playwright test ./tests/naver > test_results.html
+        run: pnpm playwright test ./tests/naver
+        
+      - name: Generate HTML report
+        if: always()
+        run: npx playwright show-report --reporter html
           
-      - name: Set summary environment variable
-        run: echo "SUMMARY=$(tail -n 10 test_results.html)" >> $GITHUB_ENV
-
-      - name: Print summary
-        run: echo "The test summary is ${{ steps.set_summary.outputs.SUMMARY }}"
-
-      - name: Upload test results
+      - name: Upload HTML report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
-          path: test_results.html
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
 
       - name: Send Slack Notification
         if: always()
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           GITHUB_WORKFLOW: ${{ github.workflow }}
-          TEST_SUMMARY: ${{ steps.playwright.outputs.SUMMARY }}
         run: |
           result_emoji=$([ "${{ job.status }}" == "success" ] && echo ":white_check_mark:" || echo ":x:")
           artifact_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           curl -X POST -H 'Content-type: application/json' \
-          --data "{\"text\":\"${result_emoji} Playwright Test for *${GITHUB_WORKFLOW}* completed with status: ${{ job.status }}\n\nTest Summary:\n${TEST_SUMMARY}\n\nFull results: ${artifact_url}\"}" \
+          --data "{\"text\":\"${result_emoji} Playwright Test for *${GITHUB_WORKFLOW}* completed with status: ${{ job.status }}\n\nFull report available at: ${artifact_url}\"}" \
           $SLACK_WEBHOOK
