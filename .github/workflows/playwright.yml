@@ -24,13 +24,13 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
         
-      - name: Run Playwright tests
-        run: pnpm playwright test ./tests/naver
-        
-      - name: Generate HTML report
-        if: always()
-        run: npx playwright show-report
-          
+      - name: Run Playwright tests and generate summary
+        run: |
+          pnpm playwright test ./tests/naver --reporter=list,html > test_output.txt
+          echo "TEST_SUMMARY<<EOF" >> $GITHUB_ENV
+          tail -n 20 test_output.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Upload HTML report
         if: always()
         uses: actions/upload-artifact@v4
@@ -47,6 +47,11 @@ jobs:
         run: |
           result_emoji=$([ "${{ job.status }}" == "success" ] && echo ":white_check_mark:" || echo ":x:")
           artifact_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          summary="${{ env.TEST_SUMMARY }}"
+          
+          # Escape special characters for JSON
+          summary=$(echo "$summary" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          
           curl -X POST -H 'Content-type: application/json' \
-          --data "{\"text\":\"${result_emoji} Playwright Test for *${GITHUB_WORKFLOW}* completed with status: ${{ job.status }}\n\nFull report available at: ${artifact_url}\"}" \
+          --data "{\"text\":\"${result_emoji} Playwright Test for *${GITHUB_WORKFLOW}* completed with status: ${{ job.status }}\n\nTest Summary:\n\`\`\`\n${summary}\n\`\`\`\n\nFull report available at: ${artifact_url}\"}" \
           $SLACK_WEBHOOK
