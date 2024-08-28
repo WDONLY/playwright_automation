@@ -36,7 +36,7 @@ jobs:
         run: |
           pnpm playwright test ./tests/naver --reporter=list,html > test_output.txt
           echo "TEST_SUMMARY<<EOF" >> $GITHUB_ENV
-          tail -n 40 test_output.txt >> $GITHUB_ENV
+          tail -n 60 test_output.txt >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
       - name: Upload HTML report
