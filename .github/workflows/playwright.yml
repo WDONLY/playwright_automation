@@ -57,13 +57,11 @@ jobs:
           artifact_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           summary="${{ env.TEST_SUMMARY }}"
           
-          # 이스케이프 코드 제거
-          summary=$(echo "$summary" | sed 's/\\u001b\[[0-9;]*m//g')
-
-          # 상승/하락/동일 이모티콘 추가
+          
+          summary=$(echo "$summary" | sed -E 's/\\u001b\[[0-9;]*m//g')
+        
           summary=$(echo "$summary" | sed 's/상승/📈 상승/g' | sed 's/하락/📉 하락/g' | sed 's/동일/➡️ 동일/g')
 
-          # JSON으로 포맷팅
           summary=$(echo "$summary" | jq -R -s '.')
 
           payload=$(jq -n --arg emoji "$result_emoji" --arg workflow "$GITHUB_WORKFLOW" --arg status "${{ job.status }}" --arg summary "$summary" --arg url "$artifact_url" \
