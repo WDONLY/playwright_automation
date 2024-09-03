@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-test('네이버 증권으로 가기', async ({ page }) => {
+test('네이버 증권에서 삼성전자 시세 가져오기', async ({ page }) => {
     await page.goto('https://www.naver.com/');
     await expect(page).toHaveTitle(/NAVER/);
     await page.pause();
